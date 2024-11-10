@@ -1,4 +1,6 @@
-import { onCleanup, onMount } from "solid-js";
+import { createSignal, onCleanup, onMount } from "solid-js";
+
+type Point2D = { x: number; y: number };
 
 export default function Home() {
   let canvas: HTMLCanvasElement;
@@ -6,14 +8,23 @@ export default function Home() {
   let parent: HTMLElement | null;
   let drawing = false;
 
+  const [paths, setPaths] = createSignal<Point2D[][]>([]);
+  const [currentPath, setCurrentPath] = createSignal<Point2D[]>([]);
+
   onMount(() => {
     if (canvas) {
       ctx = canvas.getContext("2d");
       if (!ctx || !parent) return;
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      canvas.width = parent.clientWidth;
-      canvas.height = parent.clientHeight;
+
+      const dpi = window.devicePixelRatio;
+      canvas.width = parent.clientWidth * dpi;
+      canvas.height = parent.clientHeight * dpi;
+      ctx.scale(dpi, dpi);
+
+      canvas.style.width = `${parent.clientWidth}px`;
+      canvas.style.height = `${parent.clientHeight}px`;
     }
   });
 
@@ -23,10 +34,12 @@ export default function Home() {
 
   const handleMouseDown = () => {
     drawing = true;
+    setCurrentPath([]);
   };
 
   const handleMouseUp = () => {
     drawing = false;
+    setPaths([...paths(), currentPath()]);
     if (ctx) {
       ctx.beginPath();
     }
@@ -38,6 +51,8 @@ export default function Home() {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    setCurrentPath([...currentPath(), { x, y }]);
 
     ctx.lineWidth = 5;
     ctx.lineCap = "round";
